@@ -1,30 +1,39 @@
+## 1.1.0
+
+- Deprecated bug fixes
+- Animated controller dispose fix added
+- Update environment to sdk: ">=2.17.0 <4.0.0"
+
 ## 1.0.7
+
 - Clear validation error #14 -fixed
   autovalidate option added
 
-
 ## 1.0.6
--  keyboard failed to show #10 -fixed
+
+- keyboard failed to show #10 -fixed
 
 ## 1.0.5
+
 - Option added to customize clear and dropdown icon properties
 - checkBoxProperty added ,now you can customize default property of multiple checkbox style
 - "InitialValue in multiSelection #9" bug .
 
-
 ## 1.0.4
-Input decoration added for search textfield 
-singleController and multiController renamed to controller
 
+Input decoration added for search textfield
+singleController and multiController renamed to controller
 
 ## 1.0.3
 
 Animated GIF not displaying in pub page -fixed
 
 ## 1.0.1
+
 - keyboardSubscription bug fixed
 
 ## 1.0.0
+
 - added option to customize multiple dropdown okay button
   color
   Text and textStyle
@@ -60,9 +69,7 @@ bug fix
 
 ## 0.0.2
 
-* fix bug (https://github.com/srtraj/dropdown_textfield/issues/1)
-
-
+- fix bug (https://github.com/srtraj/dropdown_textfield/issues/1)
 
 ## 0.0.1
 

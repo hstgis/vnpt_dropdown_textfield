@@ -125,7 +125,8 @@ class DropDownTextField extends StatefulWidget {
       this.listPadding,
       this.listTextStyle,
       this.checkBoxProperty,
-      this.autovalidateMode, this.maxLine = 1})
+      this.autovalidateMode,
+      this.maxLine = 1})
       : assert(initialValue == null || controller == null,
             "you cannot add both initialValue and multiController\nset initial value using controller\n\tMultiValueDropDownController(data:initial value)"),
         assert(
@@ -284,6 +285,8 @@ class _DropDownTextFieldState extends State<DropDownTextField>
   late double _keyboardHeight;
   late TextStyle _listTileTextStyle;
   late ListPadding _listPadding;
+
+  GlobalKey overlayKey = GlobalKey();
   @override
   void initState() {
     _cnt = TextEditingController();
@@ -325,6 +328,22 @@ class _DropDownTextFieldState extends State<DropDownTextField>
       }
     });
 
+    widget.singleController?.addListener(() {
+      if (widget.singleController?.dropDownValue != null) {
+        _cnt.text = widget.singleController!.dropDownValue!.name;
+      } else {
+        _cnt.clear();
+      }
+    });
+
+    widget.multiController?.addListener(() {
+      if (widget.multiController?.dropDownValueList != null) {
+        _cnt.text = widget.multiController!.dropDownValueList!.join(",");
+      } else {
+        _cnt.clear();
+      }
+    });
+
     for (int i = 0; i < widget.dropDownList.length; i++) {
       _multiSelectionValue.add(false);
     }
@@ -346,7 +365,7 @@ class _DropDownTextFieldState extends State<DropDownTextField>
         _cnt.text = (count == 0
             ? ""
             : widget.displayCompleteItem
-                ? widget.initialValue.join(",")
+                ? (widget.initialValue ?? []).join(",")
                 : "$count item selected");
       } else {
         var index = _dropDownList.indexWhere(
@@ -405,8 +424,8 @@ class _DropDownTextFieldState extends State<DropDownTextField>
 
         if (widget.multiController != null) {
           if (oldWidget != null &&
-              oldWidget.multiController!.dropDownValueList != null) {}
-          if (widget.multiController!.dropDownValueList != null) {
+              oldWidget.multiController?.dropDownValueList != null) {}
+          if (widget.multiController?.dropDownValueList != null) {
             _multiSelectionValue = [];
             for (int i = 0; i < _dropDownList.length; i++) {
               _multiSelectionValue.add(false);
@@ -420,15 +439,22 @@ class _DropDownTextFieldState extends State<DropDownTextField>
                 _multiSelectionValue[index] = true;
               }
             }
-            int count = _multiSelectionValue
-                .where((element) => element)
-                .toList()
-                .length;
-            _cnt.text = (count == 0
-                ? ""
-                : widget.displayCompleteItem
-                    ? widget.initialValue.join(",")
-                    : "$count item selected");
+            if (oldWidget?.displayCompleteItem != widget.displayCompleteItem) {
+              List<String> names =
+                  (widget.multiController?.dropDownValueList ?? [])
+                      .map((dataModel) => dataModel.name)
+                      .toList();
+
+              int count = _multiSelectionValue
+                  .where((element) => element)
+                  .toList()
+                  .length;
+              _cnt.text = (count == 0
+                  ? ""
+                  : widget.displayCompleteItem
+                      ? names.join(",")
+                      : "$count item selected");
+            }
           } else {
             _multiSelectionValue = [];
             _cnt.text = "";
@@ -448,7 +474,7 @@ class _DropDownTextFieldState extends State<DropDownTextField>
       }
 
       _listTileTextStyle =
-          (widget.listTextStyle ?? Theme.of(context).textTheme.subtitle1)!;
+          (widget.listTextStyle ?? Theme.of(context).textTheme.titleMedium)!;
       _listTileHeight =
           _textWidgetSize("dummy Text", _listTileTextStyle).height +
               _listPadding.top +
@@ -476,6 +502,10 @@ class _DropDownTextFieldState extends State<DropDownTextField>
   void dispose() {
     if (widget.searchFocusNode == null) _searchFocusNode.dispose();
     if (widget.textFieldFocusNode == null) _textFieldFocusNode.dispose();
+    if (_controller.isAnimating) {
+      _controller.stop();
+    }
+    _controller.dispose();
     _cnt.dispose();
     super.dispose();
   }
@@ -488,7 +518,7 @@ class _DropDownTextFieldState extends State<DropDownTextField>
     _cnt.clear();
     if (widget.isMultiSelection) {
       if (widget.multiController != null) {
-        widget.multiController!.setDropDown(null);
+        widget.multiController!.clearDropDown();
       }
       if (widget.onChanged != null) {
         widget.onChanged!([]);
@@ -500,7 +530,7 @@ class _DropDownTextFieldState extends State<DropDownTextField>
       }
     } else {
       if (widget.singleController != null) {
-        widget.singleController!.setDropDown(null);
+        widget.singleController!.clearDropDown();
       }
       if (widget.onChanged != null) {
         widget.onChanged!("");
@@ -529,6 +559,22 @@ class _DropDownTextFieldState extends State<DropDownTextField>
             style: widget.textStyle,
             enabled: widget.isEnabled,
             readOnly: widget.readOnly,
+            onTapOutside: (event) {
+              final RenderBox renderBox =
+                  overlayKey.currentContext?.findRenderObject() as RenderBox;
+              final overlayPosition = renderBox.localToGlobal(Offset.zero);
+              final overlaySize = renderBox.size;
+              bool isOverlayTap = (overlayPosition.dx <= event.position.dx &&
+                      event.position.dx <=
+                          overlayPosition.dx + overlaySize.width) &&
+                  (overlayPosition.dy <= event.position.dy &&
+                      event.position.dy <=
+                          overlayPosition.dy + overlaySize.height);
+
+              if (!isOverlayTap) {
+                _textFieldFocusNode.unfocus();
+              }
+            },
             onTap: () {
               _searchAutofocus = widget.searchAutofocus;
               if (!_isExpanded) {
@@ -668,7 +714,7 @@ class _DropDownTextFieldState extends State<DropDownTextField>
                 builder: buildOverlay,
               ))),
     );
-    overlay?.insert(_isScrollPadding ? _entry2! : _entry!);
+    overlay.insert(_isScrollPadding ? _entry2! : _entry!);
   }
 
   _openOutSideClickOverlay(BuildContext context) {
@@ -686,7 +732,7 @@ class _DropDownTextFieldState extends State<DropDownTextField>
         ),
       );
     });
-    overlay2?.insert(_barrierOverlay!);
+    overlay2.insert(_barrierOverlay!);
   }
 
   void hideOverlay() {
@@ -749,12 +795,13 @@ class _DropDownTextFieldState extends State<DropDownTextField>
       child: Align(
         heightFactor: _heightFactor.value,
         child: Material(
+          key: overlayKey,
           color: Colors.transparent,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius:
                     BorderRadius.all(Radius.circular(widget.dropdownRadius)),
                 boxShadow: const [
@@ -1223,6 +1270,17 @@ class DropDownValueModel extends Equatable {
       };
   @override
   List<Object> get props => [name, value];
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DropDownValueModel &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          value == other.value;
+
+  @override
+  int get hashCode => name.hashCode ^ value.hashCode;
 }
 
 class SingleValueDropDownController extends ChangeNotifier {
@@ -1231,13 +1289,17 @@ class SingleValueDropDownController extends ChangeNotifier {
     setDropDown(data);
   }
   setDropDown(DropDownValueModel? model) {
-    dropDownValue = model;
-    notifyListeners();
+    if (dropDownValue != model) {
+      dropDownValue = model;
+      notifyListeners();
+    }
   }
 
   clearDropDown() {
-    dropDownValue = null;
-    notifyListeners();
+    if (dropDownValue != null) {
+      dropDownValue = null;
+      notifyListeners();
+    }
   }
 }
 
@@ -1247,6 +1309,7 @@ class MultiValueDropDownController extends ChangeNotifier {
     setDropDown(data);
   }
   setDropDown(List<DropDownValueModel>? modelList) {
+    List<DropDownValueModel>? lst = null;
     if (modelList != null && modelList.isNotEmpty) {
       List<DropDownValueModel> list = [];
       for (DropDownValueModel item in modelList) {
@@ -1254,16 +1317,21 @@ class MultiValueDropDownController extends ChangeNotifier {
           list.add(item);
         }
       }
-      dropDownValueList = list;
-    } else {
-      dropDownValueList = null;
+      lst = list;
     }
-    notifyListeners();
+
+    Function eq = const DeepCollectionEquality.unordered().equals;
+    if (!eq(lst, dropDownValueList)) {
+      dropDownValueList = lst;
+      notifyListeners();
+    }
   }
 
   clearDropDown() {
-    dropDownValueList = null;
-    notifyListeners();
+    if (dropDownValueList != null) {
+      dropDownValueList = null;
+      notifyListeners();
+    }
   }
 }
 
