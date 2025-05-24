@@ -117,12 +117,12 @@ class _ToolTipWidgetState extends State<ToolTipWidget> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 width: MediaQuery.of(context).size.width * 0.85,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).dialogBackgroundColor,
                   borderRadius: BorderRadius.all(Radius.circular(20)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white,
+                      color: Theme.of(context).dialogBackgroundColor,
                     ),
                   ],
                 ),
@@ -150,7 +150,7 @@ class _ToolTipWidgetState extends State<ToolTipWidget> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         widget.msg,
-                        style: Theme.of(context).textTheme.subtitle1,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
                     const SizedBox(
@@ -177,7 +177,7 @@ class _ToolTipWidgetState extends State<ToolTipWidget> {
         ],
       );
     });
-    overlayState?.insert(overlayEntry);
+    overlayState.insert(overlayEntry);
   }
 
   closeOverlay() {
